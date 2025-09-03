@@ -18,6 +18,13 @@ public class Customer : MonoBehaviour
     // ------------------------
     // Названия мороженого и напитков
     // ------------------------
+    public string GetCurrentSpriteName()
+{
+    return spriteRenderer != null && spriteRenderer.sprite != null 
+        ? spriteRenderer.sprite.name 
+        : "нет спрайта";
+}
+
     private string GetIcecreamName(int index)
     {
         switch (index)
@@ -132,48 +139,55 @@ public class Customer : MonoBehaviour
     // ------------------------
 public void CheckTray(Tray tray)
 {
+    if (tray == null) return;
+
     Order trayOrder = tray.GetOrder();
-    Debug.Log($"Клиент {name} проверяет поднос {tray.name}");
 
-    if (trayOrder == null || (trayOrder.drinkIndex == -1 && trayOrder.icecreamIndex == -1))
+    if (currentOrder == null)
     {
-        Debug.Log("Поднос пустой — клиент ничего не проверяет");
-        return; // поднос пустой, игнорируем
+        Debug.LogError("❌ У клиента нет заказа, но пришёл поднос!");
+        return;
     }
 
-    bool orderOk = true;
-
-    // Проверяем мороженое, если есть
-    if (trayOrder.icecreamIndex != -1 && trayOrder.icecreamIndex != currentOrder.icecreamIndex)
+    // Проверяем напиток
+    if (currentOrder.drinkIndex != -1)
     {
-        Debug.LogError($"Ошибка: мороженое не соответствует заказу.\n" +
-                       $"Мороженое на подносе: {GetIcecreamName(trayOrder.icecreamIndex)}\n" +
-                       $"Мороженое в заказе: {GetIcecreamName(currentOrder.icecreamIndex)}");
-        orderOk = false;
+        if (trayOrder.drinkIndex != currentOrder.drinkIndex)
+        {
+            Debug.LogError(
+                $"❌ Ошибка: напиток не совпадает!\n" +
+                $"В заказе: {currentOrder.drinkIndex}, в стакане: {trayOrder.drinkIndex}"
+            );
+            return; // клиент недоволен
+        }
+        else
+        {
+            Debug.Log("✅ Напиток соответствует заказу.");
+        }
     }
 
-    // Проверяем напиток, если есть
-    if (trayOrder.drinkIndex != -1 && trayOrder.drinkIndex != currentOrder.drinkIndex)
+    // Проверяем мороженое
+    if (currentOrder.icecreamIndex != -1)
     {
-        Debug.LogError($"Ошибка: напиток не соответствует заказу.\n" +
-                       $"Напиток на подносе: {GetDrinkName(trayOrder.drinkIndex)}\n" +
-                       $"Напиток в заказе: {GetDrinkName(currentOrder.drinkIndex)}");
-        orderOk = false;
+        if (trayOrder.icecreamIndex != currentOrder.icecreamIndex)
+        {
+            Debug.LogError(
+                $"❌ Ошибка: мороженое не совпадает!\n" +
+                $"В заказе: {currentOrder.icecreamIndex}, в вафле: {trayOrder.icecreamIndex}"
+            );
+            return; // клиент недоволен
+        }
+        else
+        {
+            Debug.Log("✅ Мороженое соответствует заказу.");
+        }
     }
 
-    if (orderOk)
-    {
-        Debug.Log("✅ Заказ полностью совпадает, клиент доволен!");
-        Serve(trayOrder, true);
-    }
-    else
-    {
-        Debug.LogWarning("Клиент недоволен заказом!");
-        Serve(trayOrder, false);
-    }
-
-    tray.Clear();
+    // Если дошли сюда — заказ собран правильно
+    Debug.Log("🎉 Заказ полностью выполнен!");
+    Serve(trayOrder, true);
 }
+
 
 
     // ------------------------
@@ -300,14 +314,14 @@ IEnumerator Leave()
     Debug.Log($"{name} покинул сцену и удалён");
 
     // ⚡ после удаления клиента заспавнить нового
-    if (seatToFree != null)
-    {
-        CustomerManager cm = FindObjectOfType<CustomerManager>();
-        if (cm != null)
-        {
-            cm.SpawnNextCustomer(seatToFree);
-        }
-    }
+    //if (seatToFree != null)
+    //{
+        //CustomerManager cm = FindObjectOfType<CustomerManager>();
+        //if (cm != null)
+        //{
+            //cm.SpawnNextCustomer(seatToFree);
+        //}
+    //}
 }
 
 

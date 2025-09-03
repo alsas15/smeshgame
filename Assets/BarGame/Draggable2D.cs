@@ -93,50 +93,73 @@ void OnMouseUp()
             }
         }
 
-        // --- СТАВИМ CUP или WAFFLE НА ПОДНОС ---
-        var results = new Collider2D[8];
-        var filter = new ContactFilter2D();
-        filter.SetLayerMask(trayMask);
-        filter.useLayerMask = true;
-        filter.useTriggers = true;
+// --- СТАВИМ CUP или WAFFLE НА ПОДНОС ---
+var results = new Collider2D[8];
+var filter = new ContactFilter2D();
+filter.SetLayerMask(trayMask);
+filter.useLayerMask = true;
+filter.useTriggers = true;
 
-        int hits = selfCol.Overlap(filter, results);
-        if (hits > 0)
+int hits = selfCol.Overlap(filter, results);
+if (hits > 0)
+{
+    foreach (var hit in results)
+    {
+        if (hit == null) continue;
+
+        Tray tray = hit.GetComponent<Tray>();
+        if (tray == null) continue;
+
+        // 🔹 Убедимся, что поднос связан с зоной
+        if (tray.currentZone == null)
         {
-            foreach (var hit in results)
+            var zoneCollider = Physics2D.OverlapPoint(tray.transform.position, tableZoneMask);
+            if (zoneCollider != null)
             {
-                if (hit == null) continue;
-
-                Tray tray = hit.GetComponent<Tray>();
-                if (tray == null) continue;
-
-                if (snapToTrayCenter)
+                TableZone zone = zoneCollider.GetComponent<TableZone>();
+                if (zone != null)
                 {
-                    Vector3 trayCenter = hit.bounds.center;
-                    Vector3 off = Vector3.zero;
-
-                    if (type.category == ItemCategory.Drink)
-                        off = new Vector3(0.9f, 0.7f, 0f); // справа
-                    else if (type.category == ItemCategory.IceCream)
-                        off = new Vector3(-1.1f, 0.4f, 0f); // слева
-
-                    transform.position = trayCenter + off;
+                    tray.currentZone = zone;
+                    zone.AssignTray(tray);
                 }
-
-                // Регистрируем предмет на подносе
-                Cup cup = GetComponent<Cup>();
-                if (cup != null) tray.AddCup(cup);
-
-                Waffle waffle = GetComponent<Waffle>();
-                if (waffle != null) tray.AddWaffle(waffle);
-
-                return;
             }
         }
 
-        // если не попали никуда → уничтожаем
-        Destroy(gameObject);
+        // 🔹 Привязка предмета к центру подноса
+        if (snapToTrayCenter)
+        {
+            Vector3 trayCenter = hit.bounds.center;
+            Vector3 off = Vector3.zero;
+
+            if (type.category == ItemCategory.Drink)
+                off = new Vector3(0.9f, 0.7f, 0f); // справа
+            else if (type.category == ItemCategory.IceCream)
+                off = new Vector3(-1.1f, 0.4f, 0f); // слева
+
+            transform.position = trayCenter + off;
+        }
+
+        // 🔹 Регистрируем предмет на подносе (после привязки зоны!)
+        Cup cup = GetComponent<Cup>();
+        if (cup != null)
+        {
+            tray.AddCup(cup);
+        }
+
+        Waffle waffle = GetComponent<Waffle>();
+        if (waffle != null)
+        {
+            tray.AddWaffle(waffle);
+        }
+
         return;
+    }
+}
+
+// если не попали никуда → уничтожаем
+Destroy(gameObject);
+return;
+
     }
 
 // ====== СЛУЧАЙ 2: ПОДНОС ======
@@ -176,28 +199,21 @@ void OnMouseUp()
                 transform.position = new Vector3(zoneCenter.x, zoneCenter.y, transform.position.z);
 
                 Tray myTray = GetComponent<Tray>();
-if (myTray != null)
-{
-    zone.AssignTray(myTray);
-}
+                if (myTray != null)
+                {
+                    zone.AssignTray(myTray);
+                }
 
-currentZone = zone;
+                currentZone = zone;
+                Customer customer = zone.GetCustomer();
 
-Debug.Log("Поднос успешно установлен на зону: " + zone.name);
 
-// Проверяем заказ
-Customer customer = zone.GetCustomer();
-if (customer != null && myTray != null)
-{
-    Debug.Log("Проверяем заказ у клиента: " + customer.name);
-    customer.CheckTray(myTray);
-    Debug.Log($"Поднос {myTray.name} обнаружен клиентом {customer.name}");
-}
-else if (customer == null)
-{
-    Debug.Log("На зоне нет клиента");
-}
+                Debug.Log($"ℹ Поднос {myTray.name} установлен на зону {zone.name}, связанный клиент: {customer.name} (спрайт: {customer.GetCurrentSpriteName()})");
 
+                // ⚡ Убираем проверку заказа здесь
+                // Проверка будет происходить позже при наполнении стакана или вафли
+                // Если хочешь, можно добавить лог для отслеживания:
+                Debug.Log("ℹ Заказ клиента пока не проверяется — поднос только установлен");
 
                 return;
             }

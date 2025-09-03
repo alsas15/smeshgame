@@ -8,18 +8,27 @@ public class Tray : MonoBehaviour
     public TableZone currentZone; // зона, на которой находится поднос
 
     // вызывается при установке стакана на поднос
-    public void AddCup(Cup cup)
+public void AddCup(Cup cup)
+{
+    if (!cups.Contains(cup))
     {
-        if (!cups.Contains(cup))
-        {
-            cups.Add(cup);
-            Debug.Log($"Стакан {cup.name} добавлен на поднос");
-        }
-        else
-        {
-            Debug.LogError($"Ошибка: стакан {cup.name} уже есть на подносе, не добавлен повторно");
-        }
+        cups.Add(cup);
+
+        string zoneName = currentZone != null ? currentZone.name : "—";
+        Customer customer = currentZone != null ? currentZone.GetCustomer() : null;
+        string customerName = customer != null ? customer.name : "—";
+        string spriteName = (customer != null && customer.GetCurrentSpriteName() != null) 
+                            ? customer.GetCurrentSpriteName() : "—";
+
+        Debug.Log($"Стакан {cup.name} добавлен на поднос {name} на зоне {zoneName} с клиентом {customerName} (спрайт: {spriteName})");
     }
+    else
+    {
+        Debug.LogError($"Ошибка: стакан {cup.name} уже есть на подносе, не добавлен повторно");
+    }
+}
+
+
 
     public void AddWaffle(Waffle waffle)
     {
@@ -64,6 +73,43 @@ public class Tray : MonoBehaviour
 
         return order;
     }
+    public void TryCheckOrders()
+{
+    if (currentZone == null) return;
+
+    Customer customer = currentZone.GetCustomer();
+    if (customer == null) 
+    {
+        Debug.Log("ℹ Поднос на зоне, но клиент ещё не сидит — проверка заказа откладывается.");
+        return;
+    }
+
+    // Лог, показывающий связанного клиента и его спрайт
+    Debug.Log($"⚡ Поднос {name} связан с клиентом {customer.name} (спрайт: {customer.GetCurrentSpriteName()})");
+
+    // Проверяем стаканы
+    foreach (var cup in cups)
+    {
+        if (cup != null && cup.isFilled)
+        {
+            Debug.Log($"⚡ Стакан {cup.name} у клиента {customer.name}, проверяем заказ.");
+            customer.CheckTray(this);
+            break; // проверяем только один стакан на Tray
+        }
+    }
+
+    // Проверяем вафли
+    foreach (var waffle in waffles)
+    {
+        if (waffle != null && waffle.isFilled)
+        {
+            Debug.Log($"⚡ Вафля {waffle.name} у клиента {customer.name}, проверяем заказ.");
+            customer.CheckTray(this);
+            break;
+        }
+    }
+}
+
 
     public void Clear()
     {

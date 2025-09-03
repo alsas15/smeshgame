@@ -17,24 +17,25 @@ public class Cup : MonoBehaviour
         sr.sprite = emptySprite;
     }
 
+    /// <summary>
+    /// Наполнение стакана напитком
+    /// </summary>
+    /// <param name="drinkIndex">Индекс напитка</param>
     public void Fill(int drinkIndex)
+{
+    if (!isFilled && drinkIndex >= 0 && drinkIndex < drinkSprites.Length)
     {
-        if (!isFilled && drinkIndex >= 0 && drinkIndex < drinkSprites.Length)
-        {
-            sr.sprite = drinkSprites[drinkIndex];
-            isFilled = true;
-            filledIndex = drinkIndex; // сохраняем индекс
+        sr.sprite = drinkSprites[drinkIndex];
+        isFilled = true;
+        filledIndex = drinkIndex;
 
-            // уведомляем клиента, если стакан на подносе
-            if (tray != null && tray.currentZone != null)
-            {
-                Customer customer = tray.currentZone.GetCustomer();
-                if (customer != null)
-                {
-                    customer.CheckTray(tray);
-                    Debug.Log($"Поднос {tray.name} обновлен клиентом {customer.name} после наполнения стакана");
-                }
-            }
+        Debug.Log($"Стакан {name} наполнен напитком {drinkIndex}, спрайт обновлён на {sr.sprite.name}");
+
+        // ⚡ Проверка заказа теперь будет через Tray
+        if (tray != null)
+        {
+            tray.TryCheckOrders();
         }
     }
+}
 }
